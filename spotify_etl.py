@@ -1,5 +1,5 @@
 """
-Algorítimo baseado no vídeo e exemplo de Karolina Sowinska (YouTube)
+Algorítimo baseado no vídeo e exemplo de Karolina Sowinska (YouTube - https://www.youtube.com/watch?v=i25ttd32-eo)
 	- Crédito especial para ela.
 """
 
@@ -14,50 +14,36 @@ import spotipy.util as util
 def check_if_valid_data(df: pd.DataFrame) -> bool:
     # Check if dataframe is empty
     if df.empty:
-        print("No songs downloaded. Finishing execution")
+        print("No songs downloaded. Finishing execution.")
         return False
 
     # Primary Key Check
-    if pd.Series(df['played_at']).is_unique:
+    if pd.Series(df["played_at"]).is_unique:
         pass
     else:
-        raise Exception("Primary Key check is violated")
+        raise Exception("Primary Key check is violated!")
 
     # Check for nulls
     if df.isnull().values.any():
-        raise Exception("Null values found")
-
-    """
-    # Check that all timestamps are of yesterday's date
-    yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
-    yesterday = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
-
-    timestamps = df["timestamp"].tolist()
-    for timestamp in timestamps:
-        if datetime.datetime.strptime(timestamp, '%Y-%m-%d') != yesterday:
-            raise Exception("At least one of the returned songs does not have a yesterday's timestamp")
-    """
+        raise Exception("Null values found.")
     return True
 
 
 def run_spotify_etl():
 
-    
     user_id = ""  # Spotify username
-
     token = ""  # Spotify API token
 
-
-
     # Extract part of the ETL process
-
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
-        "Authorization": "Bearer {token}".format(token=token)
+        "Authorization": "Bearer {token}".format(token=token),
     }
 
-    r = requests.get("https://api.spotify.com/v1/me/player/recently-played?limit=50", headers=headers)
+    r = requests.get(
+        "https://api.spotify.com/v1/me/player/recently-played?limit=50", headers=headers
+    )
 
     data = r.json()
 
@@ -78,33 +64,30 @@ def run_spotify_etl():
         "song_name": song_names,
         "artist_name": artist_names,
         "played_at": played_at_list,
-        "timestamp": timestamps
+        "timestamp": timestamps,
     }
 
-    song_df = pd.DataFrame(song_dict, columns=["song_name", "artist_name", "played_at", "timestamp"])
+    song_df = pd.DataFrame(
+        song_dict, columns=["song_name", "artist_name", "played_at", "timestamp"]
+    )
 
     # Validate
     if check_if_valid_data(song_df):
         print("Data valid, proceed to Load stage")
 
     # Format timestamp to Postgres
-    song_df['played_at'] = song_df['played_at'].map(lambda x: x.replace('T', '-'))
-    song_df['played_at'] = song_df['played_at'].map(lambda x: x.replace('Z', ''))
-    song_df['played_at'] = song_df['played_at'].map(lambda x: str(x)[:-4])
-    song_df['timestamp'] = pd.to_datetime(song_df['timestamp'], format='%m-%d-%Y')
+    song_df["played_at"] = song_df["played_at"].map(lambda x: x.replace("T", "-"))
+    song_df["played_at"] = song_df["played_at"].map(lambda x: x.replace("Z", ""))
+    song_df["played_at"] = song_df["played_at"].map(lambda x: str(x)[:-4])
+    song_df["timestamp"] = pd.to_datetime(song_df["timestamp"], format="%m-%d-%Y")
 
     # Load
-    parameters = {
-        "host": "",
-        "database": "",
-        "user": "",
-        "password": ""
-    }
+    parameters = {"host": "", "database": "", "user": "", "password": ""}
 
     def connect(par):
         conn = None
         try:
-            print('Connecting to the PostgreSQL database...')
+            print("Connecting to the PostgreSQL database...")
             conn = db.connect(**par)
         except (Exception, db.DatabaseError) as error:
             print(error)
@@ -129,7 +112,12 @@ def run_spotify_etl():
     # Inserting each row
     for i in song_df.index:
         query = """INSERT into minha_lista(song_name,artist_name,played_at,timestamp) values(%s %s %s %s);
-        """ % (song_df['song_name'], song_df['artist_name'], song_df['played_at'], song_df['timestamp'])
+        """ % (
+            song_df["song_name"],
+            song_df["artist_name"],
+            song_df["played_at"],
+            song_df["timestamp"],
+        )
 
         single_insert(conn, query)
 
@@ -137,4 +125,3 @@ def run_spotify_etl():
     conn.close()
 
     print("Close database successfully")
-

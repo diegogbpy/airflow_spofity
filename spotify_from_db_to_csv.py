@@ -4,6 +4,7 @@ Consultar e extrair informações do Postgres, salvando arquivo em formato csv.
 
 import psycopg2 as db
 
+
 def run_from_db_to_csv():
 
     conn_string = "dbname='' host='' user='' password=''"
@@ -21,7 +22,6 @@ def run_from_db_to_csv():
     for info in informacoes:
         print(info)
 
-    f = open('/home/debian/Downloads/minha_lista_musicas.csv', 'w')
-    cur.copy_to(f, 'minha_lista', sep=',')
+    f = open("/home/debian/Downloads/minha_lista_musicas.csv", "w")
+    cur.copy_to(f, "minha_lista", sep=",")
     f.close()
-
